@@ -5,6 +5,8 @@ import { spawn } from 'child_process';
 import { archlogo } from '../lib/ascii.js';
 import { centerBlock, centerText, sleep } from '../lib/utils.js';
 
+const REPO_URL = 'https://github.com/Notzeyyyc/XTermLite.git';
+
 async function updateSystem(spinner) {
     spinner.start('Connecting to repository...');
     try {
@@ -12,22 +14,37 @@ async function updateSystem(spinner) {
              throw new Error('Git not installed.');
         }
 
-        // Ensure we are in a git repo
+        // AUTO-REPAIR: If .git is missing, re-initialize it
         if (!shell.test('-d', '.git')) {
-             throw new Error('Not a git repository (missing .git).');
+             spinner.message(chalk.yellow('Missing .git detected. Repairing...'));
+             await sleep(1000);
+             
+             shell.exec('git init', { silent: true });
+             shell.exec(`git remote add origin ${REPO_URL}`, { silent: true });
+             
+             spinner.message(chalk.yellow('Fetching latest firmware...'));
+             const fetch = shell.exec('git fetch origin', { silent: true });
+             
+             if (fetch.code !== 0) throw new Error('Repair failed: Cannot reach GitHub.');
+             
+             // Force reset to match remote state
+             shell.exec('git reset --hard origin/main', { silent: true });
+             
+             spinner.stop(chalk.green('Repository Repaired & Updated!'));
+             p.note('System restored to latest version.', 'Update Complete');
+             await sleep(2000);
+             process.exit(0);
+             return;
         }
 
-        // Fetch latest data from remote
+        // Standard Update Flow
         const fetch = shell.exec('git fetch origin', { silent: true });
         
         if (fetch.code !== 0) {
-            // Capture the actual error from git
             const errorDetail = fetch.stderr || fetch.stdout || 'Connection refused or invalid remote.';
             throw new Error(`Git Error: ${errorDetail.trim()}`);
         }
 
-        // Check Status
-        // -uno: Ignore untracked files
         const status = shell.exec('git status -uno', { silent: true }).stdout;
 
         if (status.includes('behind')) {
@@ -40,7 +57,7 @@ async function updateSystem(spinner) {
                  spinner.stop(chalk.green('Bootloader Updated Successfully!'));
                  p.note('System will now restart to apply changes.', 'Update Complete');
                  await sleep(2000);
-                 process.exit(0); // Force restart
+                 process.exit(0); 
             } else {
                  const pullErr = pull.stderr || 'Merge conflict or permission error.';
                  throw new Error(`Pull Failed: ${pullErr.trim()}`);
@@ -50,7 +67,7 @@ async function updateSystem(spinner) {
         }
     } catch (e) {
         spinner.stop(chalk.red('Update Failed'));
-        p.log.error(e.message); // Show the detailed error below
+        p.log.error(e.message); 
     }
 }
 
@@ -135,7 +152,6 @@ export async function showBasicRecovery() {
 
     if (choice === 'UPDATE') {
         await updateSystem(s);
-        // If update succeeds, process exits. If fails, we break here and return menu.
     } else if (choice === 'FIX_SHELL') {
         await fixShell(s);
     } else if (choice === 'SOFT_RESET') {
