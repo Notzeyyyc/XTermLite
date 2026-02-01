@@ -27,26 +27,28 @@ async function loginDistro(distro) {
     });
 }
 
-async function symlinkStorage(spinner) {
-    spinner.start('Setting up Storage Access...');
-    if (!shell.test('-d', '~/storage')) {
-        await new Promise(r => {
-            const child = spawn('termux-setup-storage', [], { stdio: 'ignore' });
-            p.log.warn('Please allow storage permission on the popup!');
-            setTimeout(r, 5000); 
-        });
-    }
-    spinner.stop('Storage permissions requested.');
-    p.note('To access SD Card inside Arch, use the "mount-session" option.', 'Storage Bind');
+async function setupStorage(spinner) {
+    spinner.start('Requesting Android Storage Permissions...');
+    // Just run termux-setup-storage to trigger the popup
+    await new Promise(r => {
+        const child = spawn('termux-setup-storage', [], { stdio: 'ignore' });
+        setTimeout(r, 3000); 
+    });
+    spinner.stop('Permission prompt triggered.');
+    p.note('Please "Allow" storage access if prompted.', 'Android Permission');
 }
 
 async function mountStorageSession() {
     console.clear();
-    p.log.info(chalk.yellow('Starting Arch Linux with /sdcard mounted at /sdcard...'));
+    // Use the raw path /storage/emulated/0 instead of /sdcard symlink for reliability
+    const androidStorage = '/storage/emulated/0';
+    
+    p.log.info(chalk.yellow(`Mounting ${androidStorage} -> /sdcard inside Arch...`));
     await sleep(1000);
     
     return new Promise((resolve) => {
-        const child = spawn('proot-distro', ['login', 'archlinux', '--bind', '/sdcard:/sdcard'], { stdio: 'inherit', shell: true });
+        // We bind to /sdcard in guest.
+        const child = spawn('proot-distro', ['login', 'archlinux', '--bind', `${androidStorage}:/sdcard`], { stdio: 'inherit', shell: true });
         child.on('close', () => resolve());
     });
 }
@@ -69,8 +71,8 @@ export async function showAdvancedRecovery() {
             message: chalk.magenta('Available Tools:'),
             options: [
                 { value: 'MULTI_DISTRO', label: 'distro-manager', hint: 'Install Ubuntu, Kali, etc.' },
-                { value: 'STORAGE_BIND', label: 'storage-setup', hint: 'Initialize Termux storage access' },
-                { value: 'MOUNT_SESSION', label: 'mount-session', hint: 'Login with /sdcard access' },
+                { value: 'SETUP_STORAGE', label: 'grant-storage', hint: 'Request Android Storage Permission' },
+                { value: 'MOUNT_SESSION', label: 'mount-session', hint: 'Login with internal storage access' },
                 { value: 'WIFI_FIX', label: 'net-fix', hint: 'Reset DNS configuration' },
                 { value: 'EXIT', label: chalk.gray('back'), hint: 'Return to Main Menu' },
             ],
@@ -119,9 +121,9 @@ export async function showAdvancedRecovery() {
                 }
             }
         }
-        else if (choice === 'STORAGE_BIND') {
+        else if (choice === 'SETUP_STORAGE') {
             const s = p.spinner();
-            await symlinkStorage(s);
+            await setupStorage(s);
         }
         else if (choice === 'MOUNT_SESSION') {
              await mountStorageSession();
