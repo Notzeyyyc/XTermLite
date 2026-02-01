@@ -1,0 +1,23 @@
+{
+  "name": "xterm",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "xterm": "index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@clack/prompts": "^1.0.0",
+    "boxen": "^8.0.1",
+    "chalk": "^5.6.2",
+    "nanospinner": "^1.2.2",
+    "shelljs": "^0.10.0"
+  }
+}
