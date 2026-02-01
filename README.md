@@ -1,16 +1,13 @@
 # XTermLite
 
-**XTermLite** is a powerful CLI-based simplified terminal environment designed for Termux users to easily install and manage Arch Linux (via proot-distro) with a beautiful, hacker-style interface.
+**XTermLite** is a powerful CLI-based simplified terminal environment designed for Termux users to easily install and manage Arch Linux (via proot-distro) with a beautiful interface.
 
 ![XTermLite Banner](https://img.shields.io/badge/XTermLite-Termux-cyan?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
 ## Features
 
-- **Cyberpunk / Arch Style UI**: Beautiful ASCII art and modern CLI prompts.
+- **Arch Style UI**: Beautiful ASCII art and modern CLI prompts.
 - **Automated Installer**: Automatically installs `proot-distro` and `archlinux`.
-- **System Checks**: Verifies environment compatibility.
-- **Kernel Panic Simulation**: Fun error handling screens.
-- **Shell Integration**: Auto-starts the environment via `.zshrc`.
 - **Lightweight**: Minimal overhead.
 
 ## Installation (Termux)
@@ -59,7 +56,6 @@ If you want to run it without the installer script:
 ## Menu Controls
 
 - **install**: Start the automated Arch Linux installation.
-- **panic**: Trigger a kernel panic test (Hidden Command).
 - **clear**: Clean the terminal interface.
 - **exit**: Close the XTermLite engine.
 
