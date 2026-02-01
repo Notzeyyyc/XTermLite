@@ -5,6 +5,44 @@ import { spawn } from 'child_process';
 import { archlogo } from '../lib/ascii.js';
 import { centerBlock, centerText, sleep } from '../lib/utils.js';
 
+async function updateSystem(spinner) {
+    spinner.start('Connecting to repository...');
+    try {
+        if (!shell.which('git')) {
+             throw new Error('Git not installed.');
+        }
+
+        // Fetch latest data from remote
+        const fetch = shell.exec('git fetch origin', { silent: true });
+        
+        if (fetch.code !== 0) throw new Error('Network Error or Invalid Repo.');
+
+        // Check Status
+        // -uno: Ignore untracked files
+        const status = shell.exec('git status -uno', { silent: true }).stdout;
+
+        if (status.includes('behind')) {
+            spinner.message('New version detected. Downloading...');
+            await sleep(1500);
+            
+            const pull = shell.exec('git pull origin main', { silent: true });
+            
+            if (pull.code === 0) {
+                 spinner.stop(chalk.green('Bootloader Updated Successfully!'));
+                 p.note('System will now restart to apply changes.', 'Update Complete');
+                 await sleep(2000);
+                 process.exit(0); // Force restart
+            } else {
+                 throw new Error('Merge Failed. Please manual pull.');
+            }
+        } else {
+            spinner.stop(chalk.green('XTermLite is already up to date.'));
+        }
+    } catch (e) {
+        spinner.stop(chalk.red(`Update Failed: ${e.message}`));
+    }
+}
+
 async function fixShell(spinner) {
     spinner.start('Repairing Shell Environment...');
     try {
@@ -72,6 +110,7 @@ export async function showBasicRecovery() {
     const choice = await p.select({
         message: chalk.white('Select Operation:'),
         options: [
+            { value: 'UPDATE', label: chalk.green('update-bootloader'), hint: 'Check & Install Latest XTermLite Updates' },
             { value: 'FIX_SHELL', label: chalk.cyan('repair-shell'), hint: 'Restore default Bash/Zsh configs' },
             { value: 'SOFT_RESET', label: chalk.cyan('soft-reset'), hint: 'Clear XTermLite specific configs' },
             { value: 'WIPE', label: chalk.red('factory-reset'), hint: 'Uninstall Arch Linux completely' },
@@ -83,7 +122,10 @@ export async function showBasicRecovery() {
 
     const s = p.spinner();
 
-    if (choice === 'FIX_SHELL') {
+    if (choice === 'UPDATE') {
+        await updateSystem(s);
+        // Wait is inside function or restart happens
+    } else if (choice === 'FIX_SHELL') {
         await fixShell(s);
     } else if (choice === 'SOFT_RESET') {
         await softReset(s);
@@ -92,7 +134,7 @@ export async function showBasicRecovery() {
         const confirm = await p.confirm({ message: 'This action cannot be undone. Uninstall Arch Linux?' });
         if (confirm) {
             await wipeData(s);
-            return 'BOOT'; // Go back to boot since system is gone
+            return 'BOOT'; 
         }
     }
 
