@@ -9,6 +9,8 @@ import { runInstaller } from './lib/screens/installer.js';
 import { showMainMenu } from './lib/screens/menu.js';
 import { showKernelPanic } from './lib/screens/kernelpanic.js';
 import { startShell } from './lib/screens/shell.js';
+import { showBasicRecovery } from './recovery/recovery.js';
+import { showAdvancedRecovery } from './recovery/recovery-xtl.js';
 
 async function shutdown() {
     p.outro(centerText(chalk.cyan('XTerm Engine Offline.')));
@@ -46,6 +48,27 @@ process.on('SIGINT', () => {
                 break;
             case 'KERNEL_PANIC':
                 currentState = await showKernelPanic();
+                break;
+            case 'RECOVERY_MENU':
+                // Intermediate menu to choose recovery type
+                console.clear();
+                const recChoice = await p.select({
+                    message: chalk.red('Select Recovery Tier:'),
+                    options: [
+                        { value: 'BASIC', label: 'Basic Recovery', hint: 'Fix Shell, Reset Config, Wipe' },
+                        { value: 'ADVANCED', label: 'XTL Advanced', hint: 'Multi-Distro, Storage, Network' },
+                        { value: 'BACK', label: 'Back to Main Menu' }
+                    ]
+                });
+                if (recChoice === 'BASIC') currentState = 'RECOVERY_BASIC';
+                else if (recChoice === 'ADVANCED') currentState = 'RECOVERY_ADVANCED';
+                else currentState = 'MAIN_MENU';
+                break;
+            case 'RECOVERY_BASIC':
+                currentState = await showBasicRecovery();
+                break;
+            case 'RECOVERY_ADVANCED':
+                currentState = await showAdvancedRecovery();
                 break;
             default:
                 console.error('Unknown state:', currentState);
