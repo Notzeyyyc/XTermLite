@@ -1,17 +1,19 @@
-# XTermLite 🚀
+# XTermLite
 
 **XTermLite** is a powerful CLI-based simplified terminal environment designed for Termux users to easily install and manage Arch Linux (via proot-distro) with a beautiful, hacker-style interface.
 
 ![XTermLite Banner](https://img.shields.io/badge/XTermLite-Termux-cyan?style=for-the-badge&logo=gnu-bash&logoColor=white)
 
-## ✨ Features
+## Features
 
 - **Cyberpunk / Arch Style UI**: Beautiful ASCII art and modern CLI prompts.
 - **Automated Installer**: Automatically installs `proot-distro` and `archlinux`.
+- **System Checks**: Verifies environment compatibility.
+- **Kernel Panic Simulation**: Fun error handling screens.
 - **Shell Integration**: Auto-starts the environment via `.zshrc`.
 - **Lightweight**: Minimal overhead.
 
-## 📱 Installation (Termux)
+## Installation (Termux)
 
 Copy and paste the following commands into your Termux terminal:
 
@@ -23,7 +25,24 @@ chmod +x install.sh
 ./install.sh
 ```
 
-## 🛠️ Manual Usage
+## Device Specifications
+
+### Minimum Requirements
+
+- **OS**: Android 7.0 (Nougat) or higher (via Termux)
+- **RAM**: 2 GB
+- **Storage**: 1 GB free space (for RootFS extraction)
+- **Processor**: Quad-core CPU (ARM64 recommended)
+
+### Recommended Requirements
+
+- **OS**: Android 10+
+- **RAM**: 4 GB or higher
+- **Storage**: 3 GB+ free space
+- **Processor**: Octa-core CPU (Snapdragon 600 series / MediaTek Helio G series or better)
+- **Internet**: Stable connection for initial download (~700MB)
+
+## Manual Usage
 
 If you want to run it without the installer script:
 
@@ -37,24 +56,13 @@ If you want to run it without the installer script:
    node index.js
    ```
 
-## 🖥️ Menu Controls
+## Menu Controls
 
 - **install**: Start the automated Arch Linux installation.
+- **panic**: Trigger a kernel panic test (Hidden Command).
 - **clear**: Clean the terminal interface.
 - **exit**: Close the XTermLite engine.
 
-## 📦 Requirements
-
-- Android Device with Termux
-- Internet connection (for downloading RootFS)
-- At least 1GB of free storage
-- Minimum Ram: 3GB (3GB in 2026 is crazy dude)
-- Recomended Ram: 6GB+
-
-## 🤝 Contributing
-
-Feel free to fork this repository and submit pull requests!
-
-## 📄 License
+## License
 
 MIT License
