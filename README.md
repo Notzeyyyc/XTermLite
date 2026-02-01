@@ -40,7 +40,6 @@ If you want to run it without the installer script:
 ## 🖥️ Menu Controls
 
 - **install**: Start the automated Arch Linux installation.
-- **panic**: Trigger a kernel panic test (Hidden Command).
 - **clear**: Clean the terminal interface.
 - **exit**: Close the XTermLite engine.
 
@@ -49,6 +48,8 @@ If you want to run it without the installer script:
 - Android Device with Termux
 - Internet connection (for downloading RootFS)
 - At least 1GB of free storage
+- Minimum Ram: 3GB (3GB in 2026 is crazy dude)
+- Recomended Ram: 6GB+
 
 ## 🤝 Contributing
 
