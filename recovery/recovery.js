@@ -12,10 +12,19 @@ async function updateSystem(spinner) {
              throw new Error('Git not installed.');
         }
 
+        // Ensure we are in a git repo
+        if (!shell.test('-d', '.git')) {
+             throw new Error('Not a git repository (missing .git).');
+        }
+
         // Fetch latest data from remote
         const fetch = shell.exec('git fetch origin', { silent: true });
         
-        if (fetch.code !== 0) throw new Error('Network Error or Invalid Repo.');
+        if (fetch.code !== 0) {
+            // Capture the actual error from git
+            const errorDetail = fetch.stderr || fetch.stdout || 'Connection refused or invalid remote.';
+            throw new Error(`Git Error: ${errorDetail.trim()}`);
+        }
 
         // Check Status
         // -uno: Ignore untracked files
@@ -33,13 +42,15 @@ async function updateSystem(spinner) {
                  await sleep(2000);
                  process.exit(0); // Force restart
             } else {
-                 throw new Error('Merge Failed. Please manual pull.');
+                 const pullErr = pull.stderr || 'Merge conflict or permission error.';
+                 throw new Error(`Pull Failed: ${pullErr.trim()}`);
             }
         } else {
             spinner.stop(chalk.green('XTermLite is already up to date.'));
         }
     } catch (e) {
-        spinner.stop(chalk.red(`Update Failed: ${e.message}`));
+        spinner.stop(chalk.red('Update Failed'));
+        p.log.error(e.message); // Show the detailed error below
     }
 }
 
@@ -124,7 +135,7 @@ export async function showBasicRecovery() {
 
     if (choice === 'UPDATE') {
         await updateSystem(s);
-        // Wait is inside function or restart happens
+        // If update succeeds, process exits. If fails, we break here and return menu.
     } else if (choice === 'FIX_SHELL') {
         await fixShell(s);
     } else if (choice === 'SOFT_RESET') {
