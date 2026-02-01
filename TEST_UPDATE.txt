@@ -1,5 +1,7 @@
 This is a test update file.
-Version: 1.1-test
-Date: 2026-02-01
+Version: 1.2-test (Auto-Repair Verification)
+Date: 2026-02-01 17:16
 
-If you see this file after running 'update-bootloader', the OTA system works!
+If you see this file:
+1. The Auto-Repair mechanism worked (if your .git was broken).
+2. The OTA Update successfully pulled the latest commit.
