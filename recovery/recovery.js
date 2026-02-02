@@ -1,9 +1,13 @@
 import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import shell from 'shelljs';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
 import { spawn } from 'child_process';
 import { getLogo } from '../lib/ascii.js';
 import { centerBlock, centerText, sleep } from '../lib/utils.js';
+import { loadSettings, saveSettings } from '../lib/config.js';
 
 const REPO_URL = 'https://github.com/Notzeyyyc/XTermLite.git';
 
@@ -181,6 +185,94 @@ async function wipeData(spinner) {
     spinner.stop(chalk.green('System Wiped Successfully.'));
 }
 
+async function hasArchLinux() {
+    if (!shell.which('proot-distro')) return false;
+    return new Promise((resolve) => {
+        const child = spawn('proot-distro', ['login', 'archlinux', '--', 'true'], { stdio: 'ignore' });
+        child.on('close', (code) => resolve(code === 0));
+        child.on('error', () => resolve(false));
+    });
+}
+
+function buildAutostartBlock(appPath) {
+    return `
+# XTERM-OS AUTOSTART START
+if [ -z "$XTERM_SESSION" ]; then
+    export XTERM_SESSION=1
+    echo "Booting XTerm-OS..."
+    node "${appPath}/index.js"
+fi
+# XTERM-OS AUTOSTART END
+`.trim();
+}
+
+async function optimizeHostAutostart(spinner) {
+    spinner.start('Optimizing Termux autostart (.zshrc)...');
+    try {
+        const zshrcPath = path.join(os.homedir(), '.zshrc');
+        const appPath = process.cwd().replace(/\\/g, '/');
+        const block = buildAutostartBlock(appPath);
+
+        const existing = fs.existsSync(zshrcPath) ? fs.readFileSync(zshrcPath, 'utf-8') : '';
+        const cleaned = existing
+            .replace(/\r/g, '')
+            .replace(/^# XTERM-OS AUTOSTART START[\s\S]*?^# XTERM-OS AUTOSTART END\s*$/gm, '')
+            .replace(/^# XTERM-OS AUTOSTART[\s\S]*?^fi\s*$/gm, '');
+
+        const next = `${cleaned.trimEnd()}\n\n${block}\n`;
+        fs.writeFileSync(zshrcPath, next, 'utf-8');
+        spinner.stop(chalk.green('Autostart optimized.'));
+        return true;
+    } catch (e) {
+        spinner.stop(chalk.red('Failed to optimize .zshrc.'));
+        return false;
+    }
+}
+
+async function optimizePacmanCache(spinner) {
+    spinner.start('Cleaning Arch pacman cache...');
+    return new Promise((resolve) => {
+        const child = spawn('proot-distro', ['login', 'archlinux', '--', 'bash', '-lc', 'pacman -Sc --noconfirm'], { stdio: 'ignore' });
+        child.on('close', (code) => {
+            if (code === 0) spinner.stop(chalk.green('Pacman cache cleaned.'));
+            else spinner.stop(chalk.yellow('Pacman cache cleanup skipped/failed.'));
+            resolve();
+        });
+        child.on('error', () => {
+            spinner.stop(chalk.red('Failed to launch pacman cache cleanup.'));
+            resolve();
+        });
+    });
+}
+
+async function optimizeRuntime(spinner) {
+    await optimizeHostAutostart(spinner);
+
+    const settings = loadSettings();
+    const liteChoice = await p.select({
+        message: `Lite Mode is currently: ${settings.liteMode ? 'ON' : 'OFF'}. Set to:`,
+        options: [
+            { value: 'ON', label: 'ON (faster UI)' },
+            { value: 'OFF', label: 'OFF (normal delays)' },
+            { value: 'SKIP', label: chalk.gray('Skip') }
+        ]
+    });
+
+    if (!p.isCancel(liteChoice) && liteChoice !== 'SKIP') {
+        settings.liteMode = liteChoice === 'ON';
+        saveSettings(settings);
+        p.note(`Lite Mode set to: ${settings.liteMode ? 'ON' : 'OFF'}`, 'Optimizer');
+    }
+
+    const archInstalled = await hasArchLinux();
+    if (archInstalled) {
+        const cleanCache = await p.confirm({ message: 'Clean Arch pacman cache to free storage?' });
+        if (cleanCache) {
+            await optimizePacmanCache(spinner);
+        }
+    }
+}
+
 export async function showBasicRecovery() {
     console.clear();
     
@@ -200,6 +292,7 @@ export async function showBasicRecovery() {
         message: chalk.white('Select Operation:'),
         options: [
             { value: 'UPDATE', label: chalk.green('bootloader-update'), hint: 'Stable, Beta, or Downgrade' },
+            { value: 'OPTIMIZE', label: chalk.cyan('optimizer'), hint: 'Speed up UI & fix autostart' },
             { value: 'FIX_SHELL', label: chalk.cyan('repair-shell'), hint: 'Restore default Bash/Zsh configs' },
             { value: 'SOFT_RESET', label: chalk.cyan('soft-reset'), hint: 'Clear XTermLite specific configs' },
             { value: 'WIPE', label: chalk.red('factory-reset'), hint: 'Uninstall Arch Linux completely' },
@@ -213,6 +306,8 @@ export async function showBasicRecovery() {
 
     if (choice === 'UPDATE') {
         await updateSystem(s);
+    } else if (choice === 'OPTIMIZE') {
+        await optimizeRuntime(s);
     } else if (choice === 'FIX_SHELL') {
         await fixShell(s);
     } else if (choice === 'SOFT_RESET') {

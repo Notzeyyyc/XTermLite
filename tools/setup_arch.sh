@@ -80,7 +80,7 @@ if [ -z "$XTERM_LITE_SILENT" ]; then
     echo -e "\e[0;35m   >> System Ready <<      \e[0m"
     echo ""
     # Minimal Neofetch
-    neofetch --ascii_distro arch --disable packages memory shell resolution
+    neofetch --ascii_distro arch --disable packages shell resolution
 fi
 EOF
 
