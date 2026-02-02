@@ -1,6 +1,6 @@
 {
   "name": "xterm",
-  "version": "1.0.0",
+  "version": "1.2.1",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "GPL-3.0-or-later",
   "type": "module",
   "dependencies": {
     "@clack/prompts": "^1.0.0",

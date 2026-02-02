@@ -1,14 +1,19 @@
 # XTermLite
 
-**XTermLite** is a powerful CLI-based simplified terminal environment designed for Termux users to easily install and manage Arch Linux (via proot-distro) with a beautiful interface.
-
 ![XTermLite Banner](https://img.shields.io/badge/XTermLite-Termux-cyan?style=for-the-badge&logo=gnu-bash&logoColor=white)
+
+**XTermLite** is a CLI interface for Termux that makes installing and managing **Arch Linux (proot-distro)** easier, cleaner, and more enjoyable.
+
+> Focus: a “semi-OS” experience in Termux—installer, menu, recovery, GUI manager (VNC/Termux-X11), and package tools.
 
 ## Features
 
-- **Arch Style UI**: Beautiful ASCII art and modern CLI prompts.
-- **Automated Installer**: Automatically installs `proot-distro` and `archlinux`.
-- **Lightweight**: Minimal overhead.
+- **Boot + Main Menu UI**: ASCII logo, themeable, prompt modern.
+- **Automated Installer**: installs `proot-distro` + `archlinux` and performs initial setup.
+- **GUI Manager**: install/start **XFCE** / **i3wm** via **VNC** or **Termux-X11**.
+- **Recovery Mode**: update channel (stable/beta/downgrade), optimizer, reset/fix, factory reset.
+- **Manager Console**: `xterm` command for install/uninstall/search packages and the “profiler” installer.
+- **Terminal WM (tmux)**: split panes + keybinds directly inside the Arch shell (no VNC).
 
 ## Installation (Termux)
 
@@ -21,6 +26,16 @@ cd XTermLite
 chmod +x install.sh
 ./install.sh
 ```
+
+## Quick Start
+
+Run the engine:
+
+```bash
+node index.js
+```
+
+If autostart is enabled, just reopen Termux.
 
 ## Device Specifications
 
@@ -45,7 +60,7 @@ If you want to run it without the installer script:
 
 1. Install dependencies:
    ```bash
-   pkg install nodejs -y
+   pkg install nodejs git -y
    npm install
    ```
 2. Run the engine:
@@ -53,12 +68,30 @@ If you want to run it without the installer script:
    node index.js
    ```
 
-## Menu Controls
+## Commands
 
-- **install**: Start the automated Arch Linux installation.
-- **clear**: Clean the terminal interface.
-- **exit**: Close the XTermLite engine.
+### Playground (Manager Mode)
+
+- `help` — list command
+- `xterm --help` — show `xterm` subcommands
+- `xterm -i <pkg>` — install a package (pacman)
+- `xterm -uin <pkg>` — uninstall package (pacman -Rns)
+- `xterm -srch [query]` — search packages, pick from a list, then auto-install
+- `xterm -i --profiler` — profile-based installer (developer/networking/multimedia)
+
+### Arch Shell
+
+- Choose `Normal Shell` or `WM Terminal (tmux)` when entering the shell.
+- Default tmux keybinds:
+  - prefix: `Ctrl+a`
+  - split: `Ctrl+a` then `|` (horizontal), `-` (vertical)
+  - switch panes: `Ctrl+a` then `h/j/k/l`
+
+## Notes
+
+- This project runs on Termux (Android). On Windows it is intended for dev/UI testing only.
+- Desktop GUI (XFCE/i3) still requires VNC or Termux-X11 because it needs a display server.
 
 ## License
 
-MIT License
+GPL-3.0-or-later

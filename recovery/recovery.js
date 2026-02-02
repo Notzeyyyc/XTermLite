@@ -15,6 +15,45 @@ async function gitExec(cmd) {
     return shell.exec(cmd, { silent: true });
 }
 
+function shSingleQuote(value) {
+    return `'${String(value).replace(/'/g, `'\\''`)}'`;
+}
+
+function normalizeHostPath(hostPath) {
+    return String(hostPath || '').replace(/\\/g, '/');
+}
+
+async function injectArchZshrc(spinner) {
+    if (process.platform === 'win32') return false;
+    const archInstalled = await hasArchLinux();
+    if (!archInstalled) return false;
+
+    const hostRepoPath = normalizeHostPath(process.cwd());
+    if (!hostRepoPath) return false;
+
+    spinner.start('Injecting Arch shell profile (.zshrc)...');
+
+    const bindSpec = `${hostRepoPath}:/xtermlite`;
+    const cmd = `cd /xtermlite && [ -f tools/setup_arch.sh ] && bash tools/setup_arch.sh || true`;
+
+    return new Promise((resolve) => {
+        const child = spawn('proot-distro', ['login', 'archlinux', '--bind', bindSpec, '--', 'bash', '-lc', cmd], { stdio: 'ignore' });
+        child.on('close', (code) => {
+            spinner.stop(code === 0 ? chalk.green('Arch .zshrc injected.') : chalk.yellow('Arch .zshrc injection skipped/failed.'));
+            resolve(code === 0);
+        });
+        child.on('error', () => {
+            spinner.stop(chalk.yellow('Arch .zshrc injection skipped/failed.'));
+            resolve(false);
+        });
+    });
+}
+
+async function applyPostUpdateInjection(spinner) {
+    await optimizeHostAutostart(spinner);
+    await injectArchZshrc(spinner);
+}
+
 async function performUpdate(branchOrTag, spinner, isTag = false) {
     spinner.start(`Switching to ${branchOrTag}...`);
 
@@ -32,6 +71,7 @@ async function performUpdate(branchOrTag, spinner, isTag = false) {
         await gitExec(`git reset --hard origin/${branchOrTag}`);
     }
 
+    await applyPostUpdateInjection(spinner);
     spinner.stop(chalk.green(`System updated to ${branchOrTag}!`));
     p.note('System will now restart to apply changes.', 'Update Complete');
     await sleep(2000);
@@ -120,6 +160,7 @@ async function updateSystem(spinner) {
              // Force reset to match remote state
              shell.exec('git reset --hard origin/main', { silent: true });
              
+             await applyPostUpdateInjection(spinner);
              spinner.stop(chalk.green('Repository Repaired & Updated!'));
              p.note('System restored to latest version.', 'Update Complete');
              await sleep(2000);
