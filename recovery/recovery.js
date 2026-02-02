@@ -2,10 +2,96 @@ import * as p from '@clack/prompts';
 import chalk from 'chalk';
 import shell from 'shelljs';
 import { spawn } from 'child_process';
-import { archlogo } from '../lib/ascii.js';
+import { getLogo } from '../lib/ascii.js';
 import { centerBlock, centerText, sleep } from '../lib/utils.js';
 
 const REPO_URL = 'https://github.com/Notzeyyyc/XTermLite.git';
+
+async function gitExec(cmd) {
+    return shell.exec(cmd, { silent: true });
+}
+
+async function performUpdate(branchOrTag, spinner, isTag = false) {
+    spinner.start(`Switching to ${branchOrTag}...`);
+
+    // Ensure we have latest info
+    const fetch = await gitExec('git fetch origin --tags');
+    if (fetch.code !== 0) throw new Error('Failed to reach GitHub.');
+
+    if (isTag) {
+        const checkout = await gitExec(`git checkout -f ${branchOrTag}`);
+        if (checkout.code !== 0) throw new Error(`Could not switch to version ${branchOrTag}`);
+    } else {
+        // Switch to branch and reset to origin
+        const checkout = await gitExec(`git checkout -B ${branchOrTag} origin/${branchOrTag}`);
+        if (checkout.code !== 0) throw new Error(`Could not switch to branch ${branchOrTag}`);
+        await gitExec(`git reset --hard origin/${branchOrTag}`);
+    }
+
+    spinner.stop(chalk.green(`System updated to ${branchOrTag}!`));
+    p.note('System will now restart to apply changes.', 'Update Complete');
+    await sleep(2000);
+    process.exit(0);
+}
+
+async function showUpdateMenu(spinner) {
+    const updateChoice = await p.select({
+        message: 'Select Update Channel:',
+        options: [
+            { value: 'STABLE', label: 'Stable Release', hint: 'Recommended (main branch)' },
+            { value: 'BETA', label: 'Beta Version', hint: 'Experimental features (beta branch)' },
+            { value: 'DOWNGRADE', label: 'Downgrade / Specific Version', hint: 'Switch to a previous tag' },
+            { value: 'BACK', label: chalk.gray('Back') }
+        ]
+    });
+
+    if (p.isCancel(updateChoice) || updateChoice === 'BACK') return;
+
+    try {
+        if (updateChoice === 'STABLE') {
+            await performUpdate('main', spinner);
+        } else if (updateChoice === 'BETA') {
+            await performUpdate('beta', spinner);
+        } else if (updateChoice === 'DOWNGRADE') {
+            spinner.start('Fetching available versions...');
+            await gitExec('git fetch origin --tags');
+            const tagsOutput = await gitExec('git tag -l --sort=-v:refname');
+            const tags = tagsOutput.stdout.split('\n').filter(t => t.trim() !== '');
+
+            spinner.stop('Versions fetched.');
+
+            if (tags.length === 0) {
+                p.log.warn('No version tags found in repository. Using recent commits instead.');
+                const logsOutput = await gitExec('git log -n 10 --oneline');
+                const commits = logsOutput.stdout.split('\n').filter(c => c.trim() !== '').map(line => {
+                    const [hash, ...msg] = line.split(' ');
+                    return { value: hash, label: hash, hint: msg.join(' ') };
+                });
+
+                const commitChoice = await p.select({
+                    message: 'Select commit to roll back to:',
+                    options: [...commits, { value: 'BACK', label: 'Back' }]
+                });
+
+                if (commitChoice !== 'BACK' && !p.isCancel(commitChoice)) {
+                    await performUpdate(commitChoice, spinner, true);
+                }
+            } else {
+                const tagChoice = await p.select({
+                    message: 'Select version tag:',
+                    options: [...tags.map(t => ({ value: t, label: t })), { value: 'BACK', label: 'Back' }]
+                });
+
+                if (tagChoice !== 'BACK' && !p.isCancel(tagChoice)) {
+                    await performUpdate(tagChoice, spinner, true);
+                }
+            }
+        }
+    } catch (e) {
+        spinner.stop(chalk.red('Update Failed'));
+        p.log.error(e.message);
+    }
+}
 
 async function updateSystem(spinner) {
     spinner.start('Connecting to repository...');
@@ -37,36 +123,11 @@ async function updateSystem(spinner) {
              return;
         }
 
-        // Standard Update Flow
-        const fetch = shell.exec('git fetch origin', { silent: true });
-        
-        if (fetch.code !== 0) {
-            const errorDetail = fetch.stderr || fetch.stdout || 'Connection refused or invalid remote.';
-            throw new Error(`Git Error: ${errorDetail.trim()}`);
-        }
+        spinner.stop('Connection established.');
+        await showUpdateMenu(spinner);
 
-        const status = shell.exec('git status -uno', { silent: true }).stdout;
-
-        if (status.includes('behind')) {
-            spinner.message('New version detected. Downloading...');
-            await sleep(1500);
-            
-            const pull = shell.exec('git pull origin main', { silent: true });
-            
-            if (pull.code === 0) {
-                 spinner.stop(chalk.green('Bootloader Updated Successfully!'));
-                 p.note('System will now restart to apply changes.', 'Update Complete');
-                 await sleep(2000);
-                 process.exit(0); 
-            } else {
-                 const pullErr = pull.stderr || 'Merge conflict or permission error.';
-                 throw new Error(`Pull Failed: ${pullErr.trim()}`);
-            }
-        } else {
-            spinner.stop(chalk.green('XTermLite is already up to date.'));
-        }
     } catch (e) {
-        spinner.stop(chalk.red('Update Failed'));
+        spinner.stop(chalk.red('Initialization Failed'));
         p.log.error(e.message); 
     }
 }
@@ -138,7 +199,7 @@ export async function showBasicRecovery() {
     const choice = await p.select({
         message: chalk.white('Select Operation:'),
         options: [
-            { value: 'UPDATE', label: chalk.green('update-bootloader'), hint: 'Check & Install Latest XTermLite Updates' },
+            { value: 'UPDATE', label: chalk.green('bootloader-update'), hint: 'Stable, Beta, or Downgrade' },
             { value: 'FIX_SHELL', label: chalk.cyan('repair-shell'), hint: 'Restore default Bash/Zsh configs' },
             { value: 'SOFT_RESET', label: chalk.cyan('soft-reset'), hint: 'Clear XTermLite specific configs' },
             { value: 'WIPE', label: chalk.red('factory-reset'), hint: 'Uninstall Arch Linux completely' },
