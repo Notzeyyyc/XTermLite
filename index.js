@@ -9,6 +9,8 @@ import { runInstaller } from './lib/screens/installer.js';
 import { showMainMenu } from './lib/screens/menu.js';
 import { showKernelPanic } from './lib/screens/kernelpanic.js';
 import { startShell } from './lib/screens/shell.js';
+import { showCustomScreen } from './lib/screens/custom.js';
+import { showGUIScreen } from './lib/screens/gui.js';
 import { showBasicRecovery } from './recovery/recovery.js';
 import { showAdvancedRecovery } from './recovery/recovery-xtl.js';
 
@@ -45,6 +47,12 @@ process.on('SIGINT', () => {
                 break;
             case 'SHELL':
                 currentState = await startShell();
+                break;
+            case 'CUSTOM':
+                currentState = await showCustomScreen();
+                break;
+            case 'GUI':
+                currentState = await showGUIScreen();
                 break;
             case 'KERNEL_PANIC':
                 currentState = await showKernelPanic();
